@@ -66,8 +66,28 @@ crystal on the beacon.
    - If the chip is read-locked, run OpenOCD's `nrf52_recover`. It erases the chip and unlocks it.
    - Then program `build/nrf52832_xxaa_dfu_s132.hex` with `verify` and reset.
    - Flashing only the app hex won't boot.
-6. **Pair and test.** Follow "Usage" in `README.md`. Firmware updates after this can go over the air (DFU mode,
-   nRF Toolbox or nRF Connect).
+6. **Pair and test.** Follow "Usage" in `README.md`.
+
+## Over-the-air updates (DFU)
+
+- **Apps:** Nordic's *nRF Device Firmware Update* or *nRF Connect for Mobile* (iOS/Android). The README also
+  names *nRF Toolbox*. To put the fob in DFU mode, press 5 times and hold the 5th press.
+- **Signing:** the secure bootloader only accepts packages signed with the key whose public half is in
+  `secure_bootloader/public_key.c`. That is the original author's key. The private key
+  (`config/bootloader_key.pem`) is not in the repo.
+  - So with the prebuilt `build/*.hex`, you can never install your own builds over the air. Only SWD
+    (the Pico) works.
+- **For your own OTA updates, make your own key before the first SWD flash** (needs the nRF5 SDK 17 + nrfutil):
+  1. `nrfutil keys generate config/bootloader_key.pem`. Keep this file private and backed up; don't commit it.
+  2. `nrfutil keys display --key pk --format code config/bootloader_key.pem --out_file secure_bootloader/public_key.c`
+  3. Rebuild the bootloader and full image (`make fat_hex`), then flash it once over SWD.
+  4. After that, `make` creates `build/open_nuki_fob_dfu.zip`. Send that file to the phone and install it with the
+     DFU app.
+- **Hardware version:** the DFU package's `--hw-version` (currently 52 in the `Makefile`) must match the
+  bootloader's `NRF_DFU_HW_VERSION`, which is 51 on the old revision and 52 on the new one. If they don't match,
+  the bootloader rejects the update.
+- Alternative: skip DFU and always reflash over SWD with the Pico. This is simpler for a handful of fobs, but
+  you have to reach the pads.
 
 ## Next steps
 
