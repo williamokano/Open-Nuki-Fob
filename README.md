@@ -31,5 +31,20 @@ To enter DFU mode, press the button on the fob 5 times and hold it down on the 5
 ## Hardware
 I used a ST Link v2 to flash the firmware to the NRF52832. For the fob, I use cheap NRF52832 based BLE Beacons by Radioland China, which already come with a battery slot, button, led and keychain case. The build directory contains a prebuilt hex file that you can flash on the afformentioned Beacon.
 
+## ESP32 / M5Stack Atom Lite (proof of concept)
+The `esp32/` directory contains a port to the M5Stack Atom Lite (ESP32-PICO-D4). It is not meant for daily use: the Atom needs constant USB power and has no keychain case. It exists to show that the protocol code still works. With it, pairing and Fob Actions 1–3 were verified against a Nuki Smart Lock 3.0.
+
+The Nuki protocol and crypto (`src/nuki*.c`, `src/utils.c`, `external/`) are compiled **unmodified**. Only the platform layer is new: a NimBLE central, the transport, NVS storage, button/LED handling and two small shim headers for the nRF logger and RNG.
+
+The port also makes the response faster than the nRF flow:
+- the number of presses is decided 300 ms after the last release, instead of a fixed 2 s window;
+- the connection to the lock starts on the first press, while the presses are still being counted;
+- it requests a short connection interval (7.5–15 ms);
+- it caches the GATT handles, and falls back to service discovery once if they fail.
+
+Each action logs per-phase timing, which is also printed at the next boot.
+
+Build and flash with PlatformIO (`cd esp32 && pio run -t upload`). See [esp32/README.md](esp32/README.md) for usage and the LED cues.
+
 ## Contributions
 - @pohlond: Fix to work with Nuki V3
